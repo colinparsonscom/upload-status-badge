@@ -8,10 +8,8 @@ branding:
   color: yellow
 
 inputs:
-  gist-secret:
-    description:
-      The secret allowing access to the gist to which to upload the status
-      badge.
+  auth:
+    description: A GitHub token with gist scope.
     required: true
   gist-id:
     description: The ID of the gist to which to upload the status badge.
@@ -96,7 +94,7 @@ runs:
     - name: Upload badge
       uses: schneegans/dynamic-badges-action@v1.6.0
       with:
-        auth: ${{ inputs.gist-secret }}
+        auth: ${{ inputs.auth }}
         gistID: ${{ inputs.gist-id }}
         filename: result.json
         label: ${{ inputs.badge-label }}

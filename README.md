@@ -31,7 +31,7 @@ jobs:
       - name: Upload badge with result of install dependencies
         uses: colinparsonsme/upload-status-badge@v1
         with:
-          gist-secret: ${{ SECRETS.gist-secret }}
+          auth: ${{ secrets.GITHUB_GIST_TOKEN }}
           gist-id: dependencies-install-gist
           badge-label: Dependencies install
           outcome: ${{ steps.install-dependencies.outcome }}
