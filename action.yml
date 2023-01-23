@@ -1,0 +1,104 @@
+name: Upload Status Badge
+author: Colin Parsons
+description:
+  Create a status badge with the result of a command, and upload it to the
+  specified gist id.
+branding:
+  icon: message-circle
+  color: yellow
+
+inputs:
+  gist-secret:
+    description:
+      The secret allowing access to the gist to which to upload the status
+      badge.
+    required: true
+  gist-id:
+    description: The ID of the gist to which to upload the status badge.
+    required: true
+  badge-label:
+    description: The label of the status badge.
+    required: true
+  outcome:
+    description:
+      'Either "success" or "failure", indicating what the status badge should
+      display.'
+    required: false
+  custom-message:
+    description:
+      'If the badge is displaying something more complex than "success" or
+      "failure", display this custom message instead (ex: "4/7 tests passed").'
+    required: false
+  custom-color:
+    description:
+      'If the badge is displaying something more complex than "success" or
+      "failure", display this custom color instead (ex: "yellow").'
+    required: false
+
+runs:
+  using: composite
+
+  steps:
+    - name:
+        At least one of outcome, custom message, and custom color must be
+        provided
+      if:
+        ${{ inputs.outcome == '' && inputs.custom-message == '' &&
+        inputs.custom-color == '' }}
+      shell: bash
+      run: |
+        echo "Error: no outcome, custom message, or custom color provided"
+        (exit 1)
+
+    - name:
+        If a custom message and custom color are provided, outcome cannot be
+        provided, and vice versa
+      if:
+        ${{ inputs.custom-message != '' && inputs.custom-color != '' &&
+        inputs.outcome != '' }}
+      shell: bash
+      run: |
+        echo "Error: if a custom message and custom color are provided, outcome cannot be provided, and vice versa"
+        (exit 1)
+
+    - name: If a custom message is provided, a custom color must be provided
+      if: ${{ inputs.custom-message != '' && inputs.custom-color == '' }}
+      shell: bash
+      run: |
+        echo "Error: custom message provided, but no custom color provided"
+        (exit 1)
+
+    - name: If a custom color is provided, a custom message must be provided
+      if: ${{ inputs.custom-message == '' && inputs.custom-color != '' }}
+      shell: bash
+      run: |
+        echo "Error: custom color provided, but no custom message provided"
+        (exit 1)
+
+    - name: Set the message and color of the status badge
+      id: message-and-color
+      shell: bash
+      run: |
+        if [[ "${{ inputs.custom-message }}" != "" ]]; then
+          echo "message=${{ inputs.custom-message }}\n" >> $GITHUB_OUTPUT
+          echo "color=${{ inputs.custom-color }}\n" >> $GITHUB_OUTPUT
+        elif [[ "${{ inputs.outcome }}" == "success" ]]; then
+          echo "message=Passing\n" >> $GITHUB_OUTPUT
+          echo "color=green\n" >> $GITHUB_OUTPUT
+        elif [[ "${{ inputs.outcome }}" == "failure" ]]; then
+          echo "message=Failing\n" >> $GITHUB_OUTPUT
+          echo "color=red\n" >> $GITHUB_OUTPUT
+        else
+          echo 'Error: outcome must be either "success" or "failure"'
+          (exit 1)
+        fi
+
+    - name: Upload badge
+      uses: schneegans/dynamic-badges-action@v1.6.0
+      with:
+        auth: ${{ inputs.gist-secret }}
+        gistID: ${{ inputs.gist-id }}
+        filename: result.json
+        label: ${{ inputs.badge-label }}
+        message: ${{ steps.message-and-color.outputs.message }}
+        color: ${{ steps.message-and-color.outputs.color }}
