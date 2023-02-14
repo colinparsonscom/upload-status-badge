@@ -22,15 +22,33 @@ inputs:
       'Either "success" or "failure", indicating what the status badge should
       display.'
     required: false
+  passing-results:
+    description:
+      'A fraction, percentage, float, or mathematical expression indicating the
+      number or proportion of passing results (ex: "4/7", "35%", "3.14", or "(2
+      ^ 4 - 6e-2)/(4 * 2 + 3.2%)").'
+    required: false
+  passing-results-thresholds:
+    description:
+      'A strictly increasing list of at most 5 thresholds, separated by commas,
+      and provided as fractions, percentages, floats, or mathematical
+      expressions. At each of these, the badge will display a different color
+      (ex: "0.2, 1/2, 70%" will display red for passing-results up to 0.2,
+      orange for passing-results between 0.2 and 0.5, yellow for passing-results
+      between 0.5 and 0.7, and brightgreen for passing-results above 0.7). If no
+      list is provided, the default thresholds are 0.5 and 0.9 (that is, red for
+      passing-results below 0.5, yellow for passing-results between 0.5 and 0.9,
+      and brightgreen for passing-results above 0.9).'
+    required: false
+    default: '0.5, 0.9'
   custom-message:
     description:
-      'If the badge is displaying something more complex than "success" or
-      "failure", display this custom message instead (ex: "4/7 tests passed").'
+      'Display this custom message instead of success, failure, or
+      number/proportion of passing results (ex: "generally doing OK").'
     required: false
   custom-color:
     description:
-      'If the badge is displaying something more complex than "success" or
-      "failure", display this custom color instead (ex: "yellow").'
+      'Display this color with a custom message (ex: "a020f0" or "purple").'
     required: false
 
 runs:
@@ -38,57 +56,270 @@ runs:
 
   steps:
     - name:
-        At least one of outcome, custom message, and custom color must be
-        provided
+        At least one of outcome, passing results, custom message, and custom
+        color must be provided
       if:
-        ${{ inputs.outcome == '' && inputs.custom-message == '' &&
-        inputs.custom-color == '' }}
+        ${{ inputs.outcome == '' && inputs.passing-results == '' &&
+        inputs.custom-message == '' && inputs.custom-color == '' }}
       shell: bash
       run: |
-        echo "Error: no outcome, custom message, or custom color provided"
-        (exit 1)
+        echo "Error: no outcome, passing results, custom message, or custom color provided"
+        exit 1
 
     - name:
-        If a custom message and custom color are provided, outcome cannot be
-        provided, and vice versa
+        If outcome is provided, then passing results, custom message, and custom
+        color cannot be provided
       if:
-        ${{ inputs.custom-message != '' && inputs.custom-color != '' &&
-        inputs.outcome != '' }}
+        ${{ inputs.outcome != '' && (inputs.passing-results != '' ||
+        inputs.custom-message != '' || inputs.custom-color != '') }}
       shell: bash
       run: |
-        echo "Error: if a custom message and custom color are provided, outcome cannot be provided, and vice versa"
-        (exit 1)
+        echo "Error: exactly one of the following must be provided: (1) outcome (2) passing results (3) both custom message and custom color"
+        exit 1
+
+    - name:
+        If passing results is provided, then outcome, custom message, and custom
+        color cannot be provided
+      if:
+        ${{ inputs.passing-results != '' && (inputs.outcome != '' ||
+        inputs.custom-message != '' || inputs.custom-color != '') }}
+      shell: bash
+      run: |
+        echo "Error: exactly one of the following must be provided: (1) outcome (2) passing results (3) both custom message and custom color"
+        exit 1
+
+    - name:
+        If custom message or custom color is provided, then outcome and passing
+        results cannot be provided
+      if:
+        ${{ (inputs.custom-message != '' || inputs.custom-color != '') &&
+        (inputs.outcome != '' || inputs.passing-results != '') }}
+      shell: bash
+      run: |
+        echo "Error: exactly one of the following must be provided: (1) outcome (2) passing results (3) both custom message and custom color"
+        exit 1
 
     - name: If a custom message is provided, a custom color must be provided
       if: ${{ inputs.custom-message != '' && inputs.custom-color == '' }}
       shell: bash
       run: |
         echo "Error: custom message provided, but no custom color provided"
-        (exit 1)
+        exit 1
 
     - name: If a custom color is provided, a custom message must be provided
       if: ${{ inputs.custom-message == '' && inputs.custom-color != '' }}
       shell: bash
       run: |
         echo "Error: custom color provided, but no custom message provided"
-        (exit 1)
+        exit 1
+
+    - name: 'If outcome is provided, it must be either "success" or "failure"'
+      if:
+        ${{ inputs.outcome != '' && inputs.outcome != 'success' &&
+        inputs.outcome != 'failure' }}
+      shell: bash
+      run: |
+        echo 'Error: outcome must be either "success" or "failure"'
+        exit 1
+
+    - name:
+        If passing results is provided, it must be a fraction, percentage,
+        float, or mathematical expression
+      id: passing-results
+      if: ${{ inputs.passing-results != '' }}
+      # we use awk to evaluate floats because even Windows GitHub runners
+      # include Git bash, which has awk.
+      #
+      # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsshell
+      # https://99-developer-tools.com/bash-awk-on-windows-git-bash-and-conemu/
+      #
+      # there's some ambiguity with how to handle things like 3/4%. % is
+      # functionally equivalent to /100, so should we output the result of
+      # (3/4)% = 3/4/100, or the result of 3/(4%) = 3/(4/100)? since we're
+      # agnostic, we'll go with the former to make our code simpler
+      shell: bash
+      run: |
+        # first, convert percentage to fraction by dividing by 100
+        # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
+        no_more_percentages=$(echo ${{ inputs.passing-results }} | awk '{ gsub ("%", "/100", $0); print }')
+
+        # now, get float value of expression
+        exec_string="console.log(parseFloat("$no_more_percentages"))"
+        float=$(node -e $exec_string 2> /dev/null) || {
+          echo "Error: passing results must be a valid fraction, percentage, float, or mathematical expression, but ${{ inputs.passing-results }} is not"
+          exit 1
+        }
+
+        echo "float=$float\n" >> $GITHUB_OUTPUT
+
+    - name:
+        Passing results thresholds must be a strictly increasing list of
+        fractions, percentages, floats, or mathematical expressions with at most
+        5 elements
+      id: passing-results-thresholds
+      # same as before, we have to use awk rather than bc
+      shell: bash
+      run: |
+        # first, split by commas and check there are no more than 5 thresholds
+        # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
+        count=$(echo "${{ inputs.passing-results-thresholds }}" | awk -F, '{ print NF }')
+
+        if [[ $count -gt 5 ]]; then
+          echo 'Error: at most 5 thresholds may be provided, but '$count' were provided in the list "${{ inputs.passing-results-thresholds }}"'
+          exit 1
+        fi
+
+        echo "count=$count\n" >> $GITHUB_OUTPUT
+
+        # first, convert percentages to fractions by dividing by 100
+        # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
+        no_more_percentages=$(echo ${{ inputs.passing-results=thresholds }} | awk '{ gsub ("%", "/100", $0); print }')
+
+        # next, iterate through each threshold and make sure it's a valid 
+        # fraction, percentage, float, or mathematical expression, and that 
+        # it's greater than the previous threshold
+        invalid_thresholds=()
+        floats=()
+
+        for threshold in $(echo $no_more_percentages | awk -F, '{ for (i=1; i<=NF; i++) print $i }'); do
+          # get float value of expression
+          exec_string="console.log(parseFloat("$threshold"))"
+          float=$(node -e $exec_string 2> /dev/null) || {
+            invalid_thresholds+=($threshold)
+            continue
+          }
+
+          # check that threshold is greater than previous threshold
+          if [[ ${#floats[@]} -gt 0 ]]; then
+            if [[ $float -le ${floats[-1]} ]]; then
+              echo 'Error: passing results thresholds must be a strictly increasing list of fractions, percentages, floats, or mathematical expressions, but in "${{ inputs.passing-results-thresholds }}", $threshold is not greater than ${floats[-1]}'
+              exit 1
+            fi
+          fi
+
+          floats+=($float)
+        done
+
+        # if there are any invalid thresholds, exit with an error
+        if [[ ${#invalid_thresholds[@]} -gt 0 ]]; then
+          echo 'Error: passing results thresholds must be a list of fractions, percentages, floats, or mathematical expressions, but the following are not: ${invalid_thresholds[@]}'
+          exit 1
+        fi
+
+        # if we've made it this far, we have a valid list of thresholds
+
+        if [[ ${{ inputs.passing-results }} != '' ]]; then
+          # only run this step if we want to see where our passing results
+          # fall in the list of thresholds
+
+          # we now just want to find which thresholds are exceeded, if any
+          for ((i=0; i<$count; i++)); do
+            if [[ ${{ steps.passing-results.outputs.float }} -lt ${floats[i]} ]]; then
+              echo "index=$i\n" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+
+          # handle the case in which all thresholds are exceeded
+          echo "index=$count\n" >> $GITHUB_OUTPUT
+        fi
 
     - name: Set the message and color of the status badge
       id: message-and-color
       shell: bash
       run: |
-        if [[ "${{ inputs.custom-message }}" != "" ]]; then
-          echo "message=${{ inputs.custom-message }}\n" >> $GITHUB_OUTPUT
-          echo "color=${{ inputs.custom-color }}\n" >> $GITHUB_OUTPUT
-        elif [[ "${{ inputs.outcome }}" == "success" ]]; then
+        if [[ "${{ inputs.outcome }}" == "success" ]]; then
           echo "message=Passing\n" >> $GITHUB_OUTPUT
           echo "color=green\n" >> $GITHUB_OUTPUT
         elif [[ "${{ inputs.outcome }}" == "failure" ]]; then
           echo "message=Failing\n" >> $GITHUB_OUTPUT
           echo "color=red\n" >> $GITHUB_OUTPUT
+        elif [[ "${{ inputs.passing-results }}" != "" ]]; then
+          # set message to "<passing-results> passing"
+          message = "${{ inputs.passing-results }} passing"
+          echo "message=$message\n" >> $GITHUB_OUTPUT
+
+          # set color according to which passing results thresholds are exceeded
+          index = ${{ steps.passing-results-thresholds.outputs.index }}
+          count = ${{ steps.passing-results-thresholds.outputs.count }}
+
+          if [[ $count -eq 0 ]]; then
+            echo "color=lightgrey\n" >> $GITHUB_OUTPUT
+          elif [[ $count -eq 1 ]]; then
+            if [[ $index -eq 0 ]]; then
+              echo "color=red\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 1 ]]; then
+              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+            else
+              echo "Fatal error: index=$index, count=$count"
+              exit 1
+            fi
+          elif [[ $count -eq 2 ]]; then
+            if [[ $index -eq 0 ]]; then
+              echo "color=red\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 1 ]]; then
+              echo "color=yellow\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 2 ]]; then
+              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+            else
+              echo "Fatal error: index=$index, count=$count"
+              exit 1
+            fi
+          elif [[ $count -eq 3 ]]; then
+            if [[ $index -eq 0 ]]; then
+              echo "color=red\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 1 ]]; then
+              echo "color=orange\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 2 ]]; then
+              echo "color=yellow\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 3 ]]; then
+              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+            else
+              echo "Fatal error: index=$index, count=$count"
+              exit 1
+            fi
+          elif [[ $count -eq 4 ]]; then
+            if [[ $index -eq 0 ]]; then
+              echo "color=red\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 1 ]]; then
+              echo "color=orange\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 2 ]]; then
+              echo "color=yellow\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 3 ]]; then
+              echo "color=yellowgreen\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 4 ]]; then
+              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+            else
+              echo "Fatal error: index=$index, count=$count"
+              exit 1
+            fi
+          elif [[ $count -eq 5 ]]; then
+            if [[ $index -eq 0 ]]; then
+              echo "color=red\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 1 ]]; then
+              echo "color=orange\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 2 ]]; then
+              echo "color=yellow\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 3 ]]; then
+              echo "color=yellowgreen\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 4 ]]; then
+              echo "color=green\n" >> $GITHUB_OUTPUT
+            elif [[ $index -eq 5 ]]; then
+              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+            else
+              echo "Fatal error: index=$index, count=$count"
+              exit 1
+            fi
+          else
+            echo "Fatal error: index=$index, count=$count"
+            exit 1
+          fi
+        elif [[ "${{ inputs.custom-message }}" != "" ]]; then
+          echo "message=${{ inputs.custom-message }}\n" >> $GITHUB_OUTPUT
+          echo "color=${{ inputs.custom-color }}\n" >> $GITHUB_OUTPUT
         else
-          echo 'Error: outcome must be either "success" or "failure"'
-          (exit 1)
+          echo 'Fatal error: unknown'
+          exit 1
         fi
 
     - name: Upload badge

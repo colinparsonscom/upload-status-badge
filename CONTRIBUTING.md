@@ -1,4 +1,4 @@
-# Contributing to universal-timeout-cli
+# Contributing to upload-status-badge
 
 A big welcome and thank you for considering contributing to upload-status-badge!
 It’s people like you that make it a reality for users in our community.
