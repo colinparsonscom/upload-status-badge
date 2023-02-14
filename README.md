@@ -20,9 +20,8 @@ For each badge you create, you need to:
    `https://gist.githubusercontent.com/<user>/<gist-id>`)
 3. Pass the ID as the `gist-id` input to the action
 4. Access the badge you create using `img.shields.io`'s `endpoint` api call with
-   the gist's URL. That is, the URL for your desired badge svg will be:
-
-> https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/<user>/<gist-id>/raw/result.json
+   the gist's URL. That is, the URL for your desired badge svg will be
+   `https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/user/gist-id/raw/result.json`
 
 ## Example Workflow
 
