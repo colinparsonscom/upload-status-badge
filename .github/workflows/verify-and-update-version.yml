@@ -16,3 +16,8 @@ jobs:
     steps:
       - name: Verify and update version
         uses: colinparsonsme/verify-and-update-version@v1
+        timeout-minutes: 5 # This action calls the GitHub API to get all
+        # previous releases. Results are paginated, 100 per page. If you can't
+        # get through all releases, 100 per API call, after 4.5 minutes of API
+        # calls, increase this timeout. But for most repos, 5 minutes should be
+        # more than enough.
