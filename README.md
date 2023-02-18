@@ -23,7 +23,7 @@ For each badge you create, you need to:
    the gist's URL. That is, the URL for your desired badge svg will be
    `https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/<user>/<gist-id>/raw/result.json`
 
-testchange3
+testchange4
 
 ## Example Workflow
 
