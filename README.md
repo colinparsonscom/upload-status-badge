@@ -50,7 +50,7 @@ jobs:
         uses: colinparsonsme/upload-status-badge@v0
         with:
           auth: ${{ secrets.GITHUB_GIST_TOKEN }}
-          gist-id: dependencies-install-gist
+          gist-id: ${{ secrets.DEPENDENCIES_INSTALL_GIST_ID }}
           badge-label: Dependencies install
           outcome: ${{ steps.install-dependencies.outcome }}
 
@@ -71,7 +71,7 @@ jobs:
         uses: colinparsonsme/upload-status-badge@v0
         with:
           auth: ${{ secrets.GITHUB_GIST_TOKEN }}
-          gist-id: tests-gist
+          gist-id: ${{ secrets.TESTS_GIST_ID }
           badge-label: Tests
           passing-results:
             ${{ steps.tests.outputs.passed-tests }} / ${{
@@ -98,7 +98,7 @@ jobs:
         uses: colinparsonsme/upload-status-badge@v0
         with:
           auth: ${{ secrets.GIST_SECRET }}
-          gist-id: build-gist
+          gist-id: ${{ secrets.BUILD_GIST_ID}
           badge-label: Build URL
           custom-message: ${{ steps.build.outputs.url }}
           custom-color: 'purple' # can be any color supported by shields.io
