@@ -128,8 +128,7 @@ runs:
       id: passing-results
       if: ${{ inputs.passing-results != '' }}
       # we use awk to evaluate floats because even Windows GitHub runners
-      # include Git bash, which has awk.
-      #
+      # include Git bash, which has awk
       # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsshell
       # https://99-developer-tools.com/bash-awk-on-windows-git-bash-and-conemu/
       #
@@ -157,7 +156,7 @@ runs:
         fractions, percentages, floats, or mathematical expressions with at most
         5 elements
       id: passing-results-thresholds
-      # same as before, we have to use awk rather than bc
+      # same as before, we have to use awk for floats
       shell: bash
       run: |
         # first, split by commas and check there are no more than 5 thresholds
@@ -175,13 +174,19 @@ runs:
         # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
         no_more_percentages=$(echo ${{ inputs.passing-results=thresholds }} | awk '{ gsub ("%", "/100", $0); print }')
 
+        # then, split array by commas
+        IFS=',' read -ra arr <<< "$no_more_percentages"
+
         # next, iterate through each threshold and make sure it's a valid 
         # fraction, percentage, float, or mathematical expression, and that 
         # it's greater than the previous threshold
         invalid_thresholds=()
         floats=()
 
-        for threshold in $(echo $no_more_percentages | awk -F, '{ for (i=1; i<=NF; i++) print $i }'); do
+        for i in "${!arr[@]}"; do
+          threshold=${arr[i]}
+          previous_threshold=${arr[i-1]}
+
           # get float value of expression
           exec_string="console.log(parseFloat("$threshold"))"
           float=$(node -e $exec_string 2> /dev/null) || {
@@ -192,7 +197,7 @@ runs:
           # check that threshold is greater than previous threshold
           if [[ ${#floats[@]} -gt 0 ]]; then
             if [[ $float -le ${floats[-1]} ]]; then
-              echo 'Error: passing results thresholds must be a strictly increasing list of fractions, percentages, floats, or mathematical expressions, but in "${{ inputs.passing-results-thresholds }}", $threshold is not greater than ${floats[-1]}'
+              echo "Error: passing results thresholds must be a strictly increasing list of fractions, percentages, floats, or mathematical expressions, but in \"${{ inputs.passing-results-thresholds }}\", $threshold isn't greater than $previous_threshold"
               exit 1
             fi
           fi
