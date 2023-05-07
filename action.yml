@@ -172,7 +172,7 @@ runs:
 
         # first, convert percentages to fractions by dividing by 100
         # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
-        no_more_percentages=$(echo ${{ inputs.passing-results=thresholds }} | awk '{ gsub ("%", "/100", $0); print }')
+        no_more_percentages=$(echo ${{ inputs.passing-results-thresholds }} | awk '{ gsub ("%", "/100", $0); print }')
 
         # then, split array by commas
         IFS=',' read -ra arr <<< "$no_more_percentages"
