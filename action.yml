@@ -207,7 +207,7 @@ runs:
 
         # if there are any invalid thresholds, exit with an error
         if [[ ${#invalid_thresholds[@]} -gt 0 ]]; then
-          echo 'Error: passing results thresholds must be a list of fractions, percentages, floats, or mathematical expressions, but the following are not: ${invalid_thresholds[@]}'
+          echo 'Error: passing results thresholds must be a list of fractions, percentages, floats, or mathematical expressions, but the following are not: '${invalid_thresholds[@]}
           exit 1
         fi
 
