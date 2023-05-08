@@ -173,9 +173,12 @@ runs:
         # first, convert percentages to fractions by dividing by 100
         # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
         no_more_percentages=$(echo ${{ inputs.passing-results-thresholds }} | awk '{ gsub ("%", "/100", $0); print }')
+        
+        # then, remove spaces
+        no_more_spaces=$(echo $no_more_percentages | awk '{ gsub(" ", "", $0); print }')
 
         # then, split array by commas
-        IFS=',' read -ra arr <<< "$no_more_percentages"
+        IFS=',' read -ra arr <<< "$no_more_spaces"
 
         # next, iterate through each threshold and make sure it's a valid 
         # fraction, percentage, float, or mathematical expression, and that 
@@ -188,7 +191,7 @@ runs:
           previous_threshold=${arr[i-1]}
 
           # get float value of expression
-          exec_string="console.log(parseFloat("$threshold"))"
+          exec_string="console.log(parseFloat(\""$threshold"\"))"
           float=$(node -e $exec_string 2> /dev/null) || {
             invalid_thresholds+=($threshold)
             continue
@@ -196,7 +199,7 @@ runs:
 
           # check that threshold is greater than previous threshold
           if [[ ${#floats[@]} -gt 0 ]]; then
-            if [[ $float -le ${floats[-1]} ]]; then
+            if [[ $(awk -v a="$float" -v b="${floats[-1]}" 'BEGIN{print(a>b)}') -eq 0 ]]; then
               echo "Error: passing results thresholds must be a strictly increasing list of fractions, percentages, floats, or mathematical expressions, but in \"${{ inputs.passing-results-thresholds }}\", $threshold isn't greater than $previous_threshold"
               exit 1
             fi
@@ -219,7 +222,7 @@ runs:
 
           # we now just want to find which thresholds are exceeded, if any
           for ((i=0; i<$count; i++)); do
-            if [[ ${{ steps.passing-results.outputs.float }} -lt ${floats[i]} ]]; then
+            if [[ $(awk -v a="${{ steps.passing-results.outputs.float }}" -v b="${floats[i]}" 'BEGIN{print(a>b)}') -eq 0 ]]; then
               echo "index=$i\n" >> $GITHUB_OUTPUT
               break
             fi
