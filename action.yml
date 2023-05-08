@@ -216,7 +216,7 @@ runs:
 
         # if we've made it this far, we have a valid list of thresholds
 
-        if [[ ${{ inputs.passing-results }} != '' ]]; then
+        if [[ "${{ inputs.passing-results }}" != '' ]]; then
           # only run this step if we want to see where our passing results
           # fall in the list of thresholds
 
