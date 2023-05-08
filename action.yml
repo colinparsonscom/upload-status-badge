@@ -238,7 +238,7 @@ runs:
       run: |
         if [[ "${{ inputs.outcome }}" == "success" ]]; then
           echo "message=Passing" >> $GITHUB_OUTPUT
-          echo "color=green" >> $GITHUB_OUTPUT
+          echo "color=brightgreen" >> $GITHUB_OUTPUT
         elif [[ "${{ inputs.outcome }}" == "failure" ]]; then
           echo "message=Failing" >> $GITHUB_OUTPUT
           echo "color=red" >> $GITHUB_OUTPUT
