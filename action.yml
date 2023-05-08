@@ -149,7 +149,7 @@ runs:
           exit 1
         }
 
-        echo "float=$float\n" >> $GITHUB_OUTPUT
+        echo "float=$float" >> $GITHUB_OUTPUT
 
     - name:
         Passing results thresholds must be a strictly increasing list of
@@ -168,7 +168,7 @@ runs:
           exit 1
         fi
 
-        echo "count=$count\n" >> $GITHUB_OUTPUT
+        echo "count=$count" >> $GITHUB_OUTPUT
 
         # first, convert percentages to fractions by dividing by 100
         # https://unix.stackexchange.com/questions/110069/turning-percentages-into-decimals
@@ -223,13 +223,13 @@ runs:
           # we now just want to find which thresholds are exceeded, if any
           for ((i=0; i<$count; i++)); do
             if [[ $(awk -v a="${{ steps.passing-results.outputs.float }}" -v b="${floats[i]}" 'BEGIN{print(a>b)}') -eq 0 ]]; then
-              echo "index=$i\n" >> $GITHUB_OUTPUT
+              echo "index=$i" >> $GITHUB_OUTPUT
               break
             fi
           done
 
           # handle the case in which all thresholds are exceeded
-          echo "index=$count\n" >> $GITHUB_OUTPUT
+          echo "index=$count" >> $GITHUB_OUTPUT
         fi
 
     - name: Set the message and color of the status badge
@@ -237,83 +237,83 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.outcome }}" == "success" ]]; then
-          echo "message=Passing\n" >> $GITHUB_OUTPUT
-          echo "color=green\n" >> $GITHUB_OUTPUT
+          echo "message=Passing" >> $GITHUB_OUTPUT
+          echo "color=green" >> $GITHUB_OUTPUT
         elif [[ "${{ inputs.outcome }}" == "failure" ]]; then
-          echo "message=Failing\n" >> $GITHUB_OUTPUT
-          echo "color=red\n" >> $GITHUB_OUTPUT
+          echo "message=Failing" >> $GITHUB_OUTPUT
+          echo "color=red" >> $GITHUB_OUTPUT
         elif [[ "${{ inputs.passing-results }}" != "" ]]; then
           # set message to "<passing-results> passing"
           message = "${{ inputs.passing-results }} passing"
-          echo "message=$message\n" >> $GITHUB_OUTPUT
+          echo "message=$message" >> $GITHUB_OUTPUT
 
           # set color according to which passing results thresholds are exceeded
           index = ${{ steps.passing-results-thresholds.outputs.index }}
           count = ${{ steps.passing-results-thresholds.outputs.count }}
 
           if [[ $count -eq 0 ]]; then
-            echo "color=lightgrey\n" >> $GITHUB_OUTPUT
+            echo "color=lightgrey" >> $GITHUB_OUTPUT
           elif [[ $count -eq 1 ]]; then
             if [[ $index -eq 0 ]]; then
-              echo "color=red\n" >> $GITHUB_OUTPUT
+              echo "color=red" >> $GITHUB_OUTPUT
             elif [[ $index -eq 1 ]]; then
-              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+              echo "color=brightgreen" >> $GITHUB_OUTPUT
             else
               echo "Fatal error: index=$index, count=$count"
               exit 1
             fi
           elif [[ $count -eq 2 ]]; then
             if [[ $index -eq 0 ]]; then
-              echo "color=red\n" >> $GITHUB_OUTPUT
+              echo "color=red" >> $GITHUB_OUTPUT
             elif [[ $index -eq 1 ]]; then
-              echo "color=yellow\n" >> $GITHUB_OUTPUT
+              echo "color=yellow" >> $GITHUB_OUTPUT
             elif [[ $index -eq 2 ]]; then
-              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+              echo "color=brightgreen" >> $GITHUB_OUTPUT
             else
               echo "Fatal error: index=$index, count=$count"
               exit 1
             fi
           elif [[ $count -eq 3 ]]; then
             if [[ $index -eq 0 ]]; then
-              echo "color=red\n" >> $GITHUB_OUTPUT
+              echo "color=red" >> $GITHUB_OUTPUT
             elif [[ $index -eq 1 ]]; then
-              echo "color=orange\n" >> $GITHUB_OUTPUT
+              echo "color=orange" >> $GITHUB_OUTPUT
             elif [[ $index -eq 2 ]]; then
-              echo "color=yellow\n" >> $GITHUB_OUTPUT
+              echo "color=yellow" >> $GITHUB_OUTPUT
             elif [[ $index -eq 3 ]]; then
-              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+              echo "color=brightgreen" >> $GITHUB_OUTPUT
             else
               echo "Fatal error: index=$index, count=$count"
               exit 1
             fi
           elif [[ $count -eq 4 ]]; then
             if [[ $index -eq 0 ]]; then
-              echo "color=red\n" >> $GITHUB_OUTPUT
+              echo "color=red" >> $GITHUB_OUTPUT
             elif [[ $index -eq 1 ]]; then
-              echo "color=orange\n" >> $GITHUB_OUTPUT
+              echo "color=orange" >> $GITHUB_OUTPUT
             elif [[ $index -eq 2 ]]; then
-              echo "color=yellow\n" >> $GITHUB_OUTPUT
+              echo "color=yellow" >> $GITHUB_OUTPUT
             elif [[ $index -eq 3 ]]; then
-              echo "color=yellowgreen\n" >> $GITHUB_OUTPUT
+              echo "color=yellowgreen" >> $GITHUB_OUTPUT
             elif [[ $index -eq 4 ]]; then
-              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+              echo "color=brightgreen" >> $GITHUB_OUTPUT
             else
               echo "Fatal error: index=$index, count=$count"
               exit 1
             fi
           elif [[ $count -eq 5 ]]; then
             if [[ $index -eq 0 ]]; then
-              echo "color=red\n" >> $GITHUB_OUTPUT
+              echo "color=red" >> $GITHUB_OUTPUT
             elif [[ $index -eq 1 ]]; then
-              echo "color=orange\n" >> $GITHUB_OUTPUT
+              echo "color=orange" >> $GITHUB_OUTPUT
             elif [[ $index -eq 2 ]]; then
-              echo "color=yellow\n" >> $GITHUB_OUTPUT
+              echo "color=yellow" >> $GITHUB_OUTPUT
             elif [[ $index -eq 3 ]]; then
-              echo "color=yellowgreen\n" >> $GITHUB_OUTPUT
+              echo "color=yellowgreen" >> $GITHUB_OUTPUT
             elif [[ $index -eq 4 ]]; then
-              echo "color=green\n" >> $GITHUB_OUTPUT
+              echo "color=green" >> $GITHUB_OUTPUT
             elif [[ $index -eq 5 ]]; then
-              echo "color=brightgreen\n" >> $GITHUB_OUTPUT
+              echo "color=brightgreen" >> $GITHUB_OUTPUT
             else
               echo "Fatal error: index=$index, count=$count"
               exit 1
@@ -323,8 +323,8 @@ runs:
             exit 1
           fi
         elif [[ "${{ inputs.custom-message }}" != "" ]]; then
-          echo "message=${{ inputs.custom-message }}\n" >> $GITHUB_OUTPUT
-          echo "color=${{ inputs.custom-color }}\n" >> $GITHUB_OUTPUT
+          echo "message=${{ inputs.custom-message }}" >> $GITHUB_OUTPUT
+          echo "color=${{ inputs.custom-color }}" >> $GITHUB_OUTPUT
         else
           echo 'Fatal error: unknown'
           exit 1
